@@ -17,20 +17,20 @@ if [ -f "$PREFIX/etc/apt/sources.list" ] && grep -q "$target_mirror" "$PREFIX/et
     echo "✅ 镜像源已经配置为Cloudflare镜像，跳过修改"
 else
     echo "正在设置Termux镜像为Cloudflare镜像..."
-    
+
     # 备份原始sources.list文件
     if [ -f "$PREFIX/etc/apt/sources.list" ]; then
         echo "备份原始sources.list文件..."
         cp "$PREFIX/etc/apt/sources.list" "$PREFIX/etc/apt/sources.list.backup.$(date +%s)"
     fi
-    
+
     # 写入新的镜像源
     echo "写入新的镜像源配置..."
     cat > "$PREFIX/etc/apt/sources.list" << 'EOF'
 # Cloudflare镜像源
 deb https://packages-cf.termux.dev/apt/termux-main stable main
 EOF
-    
+
     echo "✅ 镜像源已更新为: $target_mirror"
 fi
 
@@ -50,7 +50,6 @@ ensure_dpkg_ready() {
     # 尝试继续未完成的配置
     dpkg --configure -a || true
 }
-
 
 # 更新包列表并检查错误
 echo "正在更新包列表..."
@@ -86,12 +85,6 @@ echo "   cp \$PREFIX/etc/apt/sources.list.backup.* \$PREFIX/etc/apt/sources.list
 # 检查是否需要更新包管理器和安装软件
 need_update=false
 packages_to_install=""
-
-# 检查 uv 是否已安装
-if ! command -v uv &> /dev/null; then
-    need_update=true
-    packages_to_install="$packages_to_install uv"
-fi
 
 # 检查 python 是否已安装
 if ! command -v python &> /dev/null; then
@@ -138,7 +131,7 @@ elif [ -f "./gcli2api/web.py" ]; then
     cd ./gcli2api
 else
     echo "克隆项目仓库..."
-    git clone https://github.com/su-kaka/gcli2api.git
+    git clone https://github.com/prayer7777777/gcli2api.git
     cd ./gcli2api
 fi
 
@@ -146,14 +139,17 @@ echo "强制同步项目代码，忽略本地修改..."
 git fetch --all
 git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
 
-echo "初始化 uv 环境..."
-uv init
+echo "初始化 Python 虚拟环境..."
+if [ ! -d ".venv" ]; then
+    python -m venv .venv
+fi
 
-echo "安装 Python 依赖..."
-uv add -r requirements-termux.txt
-
-echo "激活虚拟环境并启动服务..."
+echo "激活虚拟环境并安装 Python 依赖..."
 source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements-termux.txt
+
+echo "使用 pm2 启动服务..."
 pm2 start .venv/bin/python --name web -- web.py
 cd ..
 
